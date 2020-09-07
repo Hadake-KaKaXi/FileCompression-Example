@@ -8,6 +8,7 @@ public class FileUtil {
 
     /**
      * 递归获取目录下的所有文件
+     *
      * @param dir 目录
      * @return 文件列表
      */
@@ -27,5 +28,24 @@ public class FileUtil {
                 findFile(file, filelist);
             }
         }
+    }
+
+    public static String findRelativePath(File base, File file) {
+        //格式化基准目录
+        String basePathFormat = base.getAbsolutePath();
+        //格式化文件目录
+        String filePathFormat = file.getAbsolutePath();
+        if (basePathFormat.equals(filePathFormat)) {
+            //一个单文件的情况
+            return file.getName();
+        } else {
+            //截取相对路径
+            String relative = filePathFormat.replace(basePathFormat, "");
+
+            String relativePath = relative.substring(1, relative.length()).replaceAll("\\\\", "/");
+
+            return relativePath;
+        }
+
     }
 }
