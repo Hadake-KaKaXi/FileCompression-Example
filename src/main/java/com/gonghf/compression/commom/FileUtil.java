@@ -1,4 +1,4 @@
-package com.gonghf.file.compression.commom;
+package com.gonghf.compression.commom;
 
 import java.io.File;
 import java.util.ArrayList;

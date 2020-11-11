@@ -1,4 +1,4 @@
-package com.gonghf.file.compression.rar;
+package com.gonghf.compression.file.rar;
 
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;

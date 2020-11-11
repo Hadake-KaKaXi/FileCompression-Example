@@ -1,15 +1,17 @@
-package com.gonghf.file.compression.zip;
+package com.gonghf.compression.file.zip;
 
-import com.gonghf.file.compression.commom.FileUtil;
+import com.gonghf.compression.commom.FileUtil;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
+import org.apache.log4j.Logger;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class ZipUtil {
+    private static Logger logger = Logger.getLogger(ZipUtil.class);
 
     private static final int ZIP_COMPRESSION_BUFF = 4096;
 
@@ -20,9 +22,11 @@ public class ZipUtil {
      *
      * @param dir 要压缩的目录或文件
      */
-    public static String zip(String dir) throws IOException {
+    public static String zip(String dir) {
         File file = new File(dir);
+        logger.info("[Zip压缩开始 >>] " + file.getAbsolutePath());
         if (!file.exists()) {
+            logger.error("[Zip压缩失败] " + file.getAbsolutePath() + "压缩文件/目录不存在");
             return null;
         }
         List<File> dirFile = FileUtil.findDirFile(dir);
@@ -38,18 +42,28 @@ public class ZipUtil {
             zipFile.delete();
         }
 
-        zipCompression(dir, dirFile, zipFilePath);
-        System.out.println("zipCompression Path: " + zipFilePath);
-
+        try {
+            logger.info("[Zip压缩文件] 需要压缩" + dirFile.size() + "个文件");
+            zipCompression(dir, dirFile, zipFilePath);
+        } catch (IOException e) {
+            logger.error("[Zip压缩失败] " + e.getMessage());
+        }
+        logger.info("[Zip压缩结束 <<] 完成压缩");
         return zipFilePath;
     }
 
-    public static File[] unZip(String zipFilePath, String deCompressionPath) throws IOException {
-        System.out.println("zipDecompression Path: " + zipFilePath);
+    public static File[] unZip(String zipFilePath, String deCompressionPath) {
+        logger.info("[Zip解压开始 >>] " + zipFilePath);
         List<File> fileList = new ArrayList<>();
 
-        boolean zipDecompression = zipDecompression(zipFilePath, fileList, deCompressionPath);
-
+        boolean zipDecompression = false;
+        try {
+            zipDecompression = zipDecompression(zipFilePath, fileList, deCompressionPath);
+            logger.info("[Zip解压] 共解压" + fileList.size() + "个文件");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        logger.info("[Zip解压结束 <<] 完成解压");
         if (zipDecompression) {
             return fileList.toArray(new File[fileList.size()]);
         } else {
@@ -66,7 +80,6 @@ public class ZipUtil {
      * @throws IOException
      */
     private static boolean zipCompression(String basePath, List<File> fileslist, String zipFilePath) throws IOException {
-        System.out.println("zipCompression -> Compression start!");
         ZipArchiveOutputStream zipArchiveOut = null;
         FileOutputStream outputStream = null;
 
@@ -75,10 +88,10 @@ public class ZipUtil {
             zipArchiveOut = new ZipArchiveOutputStream(outputStream);
 
             for (File file : fileslist) {
+                logger.debug("[Zip压缩文件] " + file.getAbsolutePath());
                 String relativePath = FileUtil.findRelativePath(new File(basePath), file);
                 ZipArchiveEntry zipEntry = new ZipArchiveEntry(file, relativePath);
                 zipEntry.setSize(file.length());
-                System.out.println("    compression file -> " + zipEntry.getName());
                 zipArchiveOut.putArchiveEntry(zipEntry);
 
                 FileInputStream inputStream = null;
@@ -109,20 +122,19 @@ public class ZipUtil {
                 outputStream.close();
             }
         }
-        System.out.println("zipCompression -> Compression complete!");
         return true;
     }
 
     /**
      * zip解压缩文件/文件夹
-     * @param zipFilePath zip文件地址
-     * @param fileList  解压后zip的文件列表
+     *
+     * @param zipFilePath       zip文件地址
+     * @param fileList          解压后zip的文件列表
      * @param deCompressionPath 要解压到的目录
      * @return
      * @throws IOException
      */
     private static boolean zipDecompression(String zipFilePath, List<File> fileList, String deCompressionPath) throws IOException {
-        System.out.println("zipDecompression -> Decompression start!");
         File file = new File(zipFilePath);
         if (!file.exists()) {
             return false;
@@ -136,18 +148,20 @@ public class ZipUtil {
 
             ZipArchiveEntry zipEntry = null;
             while ((zipEntry = zipArchiveInput.getNextZipEntry()) != null) {
+                if(zipEntry.isDirectory()){
+                    continue;
+                }
                 FileOutputStream fileOutput = null;
                 BufferedOutputStream outBuff = null;
                 try {
                     String dir = deCompressionPath + File.separator + zipEntry.getName();// tar档中文件
-                    System.out.println("    already zip decompression file -> " + dir);
                     File dirFile = new File(dir);
                     fileList.add(dirFile);
                     if (!dirFile.getParentFile().exists()) {
                         dirFile.getParentFile().mkdirs();
                     }
-
-                    fileOutput = new FileOutputStream(dir);
+                    logger.info("[Zip压缩文件] 解压文件" + dirFile.getAbsolutePath());
+                    fileOutput = new FileOutputStream(dirFile);
                     outBuff = new BufferedOutputStream(fileOutput);
 
                     int count;
@@ -173,7 +187,6 @@ public class ZipUtil {
                 fileInput.close();
             }
         }
-        System.out.println("zipDecompression -> Decompression end!");
         return true;
     }
 }
